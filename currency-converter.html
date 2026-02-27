@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Currency Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --text: #f0ead6;
+    --text-muted: #7a7265;
+    --border: #2a2520;
+    --success: #4caf82;
+  }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(201, 168, 76, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 80% 80%, rgba(201, 168, 76, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .ticker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  .ticker-inner {
+    display: flex;
+    gap: 60px;
+    animation: scroll 30s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .ticker-item span {
+    color: var(--gold);
+    margin-left: 6px;
+  }
+
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .container {
+    width: 100%;
+    max-width: 520px;
+    margin-top: 40px;
+  }
+
+  header {
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 6vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.1s forwards;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 36px;
+    position: relative;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.2s forwards;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .field-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .amount-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: flex-end;
+  }
+
+  .amount-wrap {
+    flex: 1;
+  }
+
+  .amount-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  .amount-input::-webkit-inner-spin-button,
+  .amount-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .amount-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08);
+  }
+
+  .currency-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 28px;
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 40px 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--gold); }
+
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    font-size: 12px;
+  }
+
+  .swap-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--gold);
+    font-size: 18px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    align-self: flex-end;
+  }
+
+  .swap-btn:hover {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
+    transform: rotate(180deg);
+  }
+
+  .convert-btn {
+    width: 100%;
+    background: var(--gold);
+    color: var(--bg);
+    border: none;
+    border-radius: 2px;
+    padding: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 28px;
+  }
+
+  .convert-btn:hover {
+    background: var(--gold-light);
+    letter-spacing: 0.3em;
+  }
+
+  .convert-btn:active { transform: scale(0.99); }
+
+  .result-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 24px;
+    text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+
+  .result-box.has-result {
+    border-color: rgba(201, 168, 76, 0.3);
+    background: linear-gradient(135deg, var(--surface2), rgba(201, 168, 76, 0.04));
+  }
+
+  .result-from {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  .result-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 42px);
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s ease;
+  }
+
+  .result-amount.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .result-code {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+
+  .result-rate {
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.4s ease 0.2s;
+  }
+
+  .result-rate.show { opacity: 1; }
+
+  .result-placeholder {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  .quick-currencies {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .quick-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1em;
+  }
+
+  .quick-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .error-msg {
+    font-size: 11px;
+    color: #e57373;
+    text-align: center;
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+    display: none;
+  }
+
+  .loading-dots {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .loading-dots span {
+    width: 4px; height: 4px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.4s forwards;
+  }
+</style>
+</head>
+<body>
+
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item">USD/EUR <span>0.9210</span></span>
+    <span class="ticker-item">GBP/USD <span>1.2685</span></span>
+    <span class="ticker-item">USD/JPY <span>149.32</span></span>
+    <span class="ticker-item">USD/CHF <span>0.8895</span></span>
+    <span class="ticker-item">AUD/USD <span>0.6542</span></span>
+    <span class="ticker-item">USD/CAD <span>1.3621</span></span>
+    <span class="ticker-item">USD/CNY <span>7.2410</span></span>
+    <span class="ticker-item">EUR/GBP <span>0.7261</span></span>
+    <span class="ticker-item">NZD/USD <span>0.6102</span></span>
+    <span class="ticker-item">USD/SGD <span>1.3450</span></span>
+    <!-- Duplicate for seamless loop -->
+    <span class="ticker-item">USD/EUR <span>0.9210</span></span>
+    <span class="ticker-item">GBP/USD <span>1.2685</span></span>
+    <span class="ticker-item">USD/JPY <span>149.32</span></span>
+    <span class="ticker-item">USD/CHF <span>0.8895</span></span>
+    <span class="ticker-item">AUD/USD <span>0.6542</span></span>
+    <span class="ticker-item">USD/CAD <span>1.3621</span></span>
+    <span class="ticker-item">USD/CNY <span>7.2410</span></span>
+    <span class="ticker-item">EUR/GBP <span>0.7261</span></span>
+    <span class="ticker-item">NZD/USD <span>0.6102</span></span>
+    <span class="ticker-item">USD/SGD <span>1.3450</span></span>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <p class="logo">FX Exchange</p>
+    <h1>Currency<br><em>Converter</em></h1>
+  </header>
+
+  <div class="card">
+    <!-- Amount -->
+    <div class="amount-row">
+      <div class="amount-wrap">
+        <p class="field-label">Amount</p>
+        <input type="number" class="amount-input" id="amount" value="1" min="0" step="any" placeholder="0.00">
+      </div>
+    </div>
+
+    <!-- Quick amounts -->
+    <div class="quick-currencies">
+      <span class="field-label" style="width:100%; margin-bottom:0">Quick amounts —</span>
+      <button class="quick-btn" onclick="setAmount(100)">100</button>
+      <button class="quick-btn" onclick="setAmount(500)">500</button>
+      <button class="quick-btn" onclick="setAmount(1000)">1,000</button>
+      <button class="quick-btn" onclick="setAmount(5000)">5,000</button>
+      <button class="quick-btn" onclick="setAmount(10000)">10,000</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Currency selectors -->
+    <div class="currency-row">
+      <div class="select-wrap">
+        <p class="field-label">From</p>
+        <select id="fromCurrency"></select>
+      </div>
+      <button class="swap-btn" onclick="swapCurrencies()" title="Swap currencies">⇄</button>
+      <div class="select-wrap">
+        <p class="field-label">To</p>
+        <select id="toCurrency"></select>
+      </div>
+    </div>
+
+    <button class="convert-btn" onclick="convert()">Convert →</button>
+
+    <!-- Result -->
+    <div class="result-box" id="resultBox">
+      <p class="result-placeholder">Enter an amount and select currencies</p>
+    </div>
+    <p class="error-msg" id="errorMsg">Unable to fetch rates. Please try again.</p>
+  </div>
+
+  <footer>Live rates via Open Exchange Rates API &nbsp;·&nbsp; Rates update on each conversion</footer>
+</div>
+
+<script>
+const currencies = [
+  { code: 'USD', name: 'US Dollar', flag: '🇺🇸' },
+  { code: 'EUR', name: 'Euro', flag: '🇪🇺' },
+  { code: 'GBP', name: 'British Pound', flag: '🇬🇧' },
+  { code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵' },
+  { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺' },
+  { code: 'CAD', name: 'Canadian Dollar', flag: '🇨🇦' },
+  { code: 'CHF', name: 'Swiss Franc', flag: '🇨🇭' },
+  { code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳' },
+  { code: 'INR', name: 'Indian Rupee', flag: '🇮🇳' },
+  { code: 'PKR', name: 'Pakistani Rupee', flag: '🇵🇰' },
+  { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿' },
+  { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬' },
+  { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰' },
+  { code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴' },
+  { code: 'SEK', name: 'Swedish Krona', flag: '🇸🇪' },
+  { code: 'DKK', name: 'Danish Krone', flag: '🇩🇰' },
+  { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽' },
+  { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷' },
+  { code: 'ZAR', name: 'South African Rand', flag: '🇿🇦' },
+  { code: 'AED', name: 'UAE Dirham', flag: '🇦🇪' },
+  { code: 'SAR', name: 'Saudi Riyal', flag: '🇸🇦' },
+  { code: 'TRY', name: 'Turkish Lira', flag: '🇹🇷' },
+  { code: 'KRW', name: 'South Korean Won', flag: '🇰🇷' },
+  { code: 'THB', name: 'Thai Baht', flag: '🇹🇭' },
+  { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾' },
+];
+
+// Approximate static rates relative to USD (fallback)
+const staticRates = {
+  USD:1,EUR:0.921,GBP:0.7894,JPY:149.32,AUD:1.529,CAD:1.362,CHF:0.8895,
+  CNY:7.241,INR:83.12,PKR:278.5,NZD:1.639,SGD:1.345,HKD:7.823,NOK:10.52,
+  SEK:10.41,DKK:6.874,MXN:17.15,BRL:4.973,ZAR:18.63,AED:3.673,SAR:3.751,
+  TRY:30.47,KRW:1325,THB:35.12,MYR:4.698
+};
+
+const fromSelect = document.getElementById('fromCurrency');
+const toSelect = document.getElementById('toCurrency');
+
+// Populate selects
+currencies.forEach(c => {
+  const label = `${c.flag}  ${c.code} — ${c.name}`;
+  fromSelect.add(new Option(label, c.code));
+  toSelect.add(new Option(label, c.code));
+});
+
+fromSelect.value = 'USD';
+toSelect.value = 'PKR';
+
+function setAmount(val) {
+  document.getElementById('amount').value = val;
+}
+
+function swapCurrencies() {
+  [fromSelect.value, toSelect.value] = [toSelect.value, fromSelect.value];
+}
+
+function showLoading() {
+  const box = document.getElementById('resultBox');
+  box.className = 'result-box';
+  box.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div>`;
+}
+
+function showResult(fromAmount, fromCode, toAmount, toCode, rate) {
+  const box = document.getElementById('resultBox');
+  const formattedFrom = parseFloat(fromAmount).toLocaleString('en-US', {maximumFractionDigits: 2});
+  const formattedTo = parseFloat(toAmount).toLocaleString('en-US', {
+    maximumFractionDigits: toCode === 'JPY' || toCode === 'KRW' || toCode === 'PKR' || toCode === 'INR' ? 0 : 2
+  });
+  const rateDisplay = rate < 0.01 ? rate.toFixed(6) : rate.toFixed(4);
+
+  box.className = 'result-box has-result';
+  box.innerHTML = `
+    <p class="result-from">${formattedFrom} ${fromCode} =</p>
+    <p class="result-amount" id="resultAmount">${formattedTo}</p>
+    <p class="result-code" id="resultCode">${toCode}</p>
+    <p class="result-rate" id="resultRate">1 ${fromCode} = ${rateDisplay} ${toCode}</p>
+  `;
+  setTimeout(() => {
+    document.getElementById('resultAmount')?.classList.add('show');
+    document.getElementById('resultRate')?.classList.add('show');
+  }, 50);
+}
+
+async function convert() {
+  const amount = parseFloat(document.getElementById('amount').value);
+  const from = fromSelect.value;
+  const to = toSelect.value;
+  const errEl = document.getElementById('errorMsg');
+
+  if (isNaN(amount) || amount <= 0) {
+    document.getElementById('amount').focus();
+    return;
+  }
+
+  errEl.style.display = 'none';
+  showLoading();
+
+  try {
+    // Use free exchangerate API (no key needed)
+    const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const rate = data.rates[to];
+    if (!rate) throw new Error();
+    const result = amount * rate;
+    showResult(amount, from, result, to, rate);
+  } catch {
+    // Fallback to static rates
+    const usdFrom = staticRates[from];
+    const usdTo = staticRates[to];
+    if (usdFrom && usdTo) {
+      const rate = usdTo / usdFrom;
+      const result = amount * rate;
+      showResult(amount, from, result, to, rate);
+      errEl.textContent = 'Using estimated offline rates.';
+      errEl.style.display = 'block';
+    } else {
+      errEl.textContent = 'Conversion failed. Please try again.';
+      errEl.style.display = 'block';
+      document.getElementById('resultBox').innerHTML = '<p class="result-placeholder">—</p>';
+    }
+  }
+}
+
+// Convert on Enter
+document.getElementById('amount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') convert();
+});
+
+// Auto-convert on currency change
+fromSelect.addEventListener('change', () => {
+  if (document.getElementById('amount').value) convert();
+});
+toSelect.addEventListener('change', () => {
+  if (document.getElementById('amount').value) convert();
+});
+
+// Initial conversion
+convert();
+</script>
+</body>
+</html>
